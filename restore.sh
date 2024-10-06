@@ -52,8 +52,11 @@ echo
 
 # Check if PostgreSQL, InfluxDB, and Redis are running
 echo "Checking if PostgreSQL, InfluxDB, and Redis containers are running..."
-if ! docker compose ps --services --filter "status=running" | grep -q '^postgresql$'; then
-    echo "Error: PostgreSQL container is not running."
+
+# Check for 'postgresql' or 'db' service for PostgreSQL and remember the service name
+POSTGRES_SERVICE=$(docker compose ps --services --filter "status=running" | grep -E '^(postgresql|db)$')
+if [ -z "$POSTGRES_SERVICE" ]; then
+    echo "Error: PostgreSQL container is not running (neither as 'postgresql' nor 'db')."
     exit 1
 fi
 
@@ -82,7 +85,7 @@ echo
 
 # Check all running containers except PostgreSQL, InfluxDB, and Redis
 echo "Checking running containers..."
-RUNNING_CONTAINERS=$(docker compose ps --services --filter "status=running" | grep -vE '^(postgresql|influxdb|redis)$')
+RUNNING_CONTAINERS=$(docker compose ps --services --filter "status=running" | grep -vE '^(postgresql|db|influxdb|redis)$')
 echo "Stopping all containers except PostgreSQL, InfluxDB, and Redis..."
 docker compose stop $(echo "$RUNNING_CONTAINERS")
 echo "All other containers stopped."
@@ -99,7 +102,7 @@ PG_BACKUP_FILE="solectrus-postgresql-backup-$BACKUP_DATE.sql.gz"
 if [ -f "$PG_BACKUP_FILE" ]; then
     echo "Restoring PostgreSQL backup..."
 
-    gunzip -c $PG_BACKUP_FILE | docker compose exec -T postgresql psql -U postgres >/dev/null 2>&1
+    gunzip -c $PG_BACKUP_FILE | docker compose exec -T $POSTGRES_SERVICE psql -U postgres >/dev/null 2>&1
 
     if [ $? -eq 0 ]; then
         echo "PostgreSQL restore completed successfully."

@@ -17,8 +17,11 @@ fi
 
 # Check if PostgreSQL and InfluxDB are running
 echo "Checking if PostgreSQL and InfluxDB containers are running..."
-if ! docker compose ps --services --filter "status=running" | grep -q '^postgresql$'; then
-    echo "Error: PostgreSQL container is not running."
+
+# Check for 'postgresql' or 'db' service for PostgreSQL and remember the service name
+POSTGRES_SERVICE=$(docker compose ps --services --filter "status=running" | grep -E '^(postgresql|db)$')
+if [ -z "$POSTGRES_SERVICE" ]; then
+    echo "Error: PostgreSQL container is not running (neither as 'postgresql' nor 'db')."
     exit 1
 fi
 
@@ -33,7 +36,7 @@ echo
 # PostgreSQL Backup
 echo "Creating PostgreSQL backup..."
 PG_BACKUP_FILE="solectrus-postgresql-backup-$BACKUP_DATE.sql.gz"
-docker compose exec postgresql pg_dumpall -U postgres | gzip >$PG_BACKUP_FILE
+docker compose exec $POSTGRES_SERVICE pg_dumpall -U postgres | gzip >$PG_BACKUP_FILE
 if [ $? -eq 0 ]; then
     PG_SIZE=$(du -h "$PG_BACKUP_FILE" | awk '{print $1}')
     echo "PostgreSQL backup saved as $PG_BACKUP_FILE ($PG_SIZE)"
