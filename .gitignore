@@ -1,0 +1,6 @@
+compose.yaml
+.env
+influxdb
+postgresql
+redis
+*.gz
