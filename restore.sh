@@ -1,5 +1,16 @@
 #!/bin/bash
 
+# Function to detect and use the correct Docker Compose command
+function get_docker_compose_command {
+    if command -v docker-compose >/dev/null 2>&1; then
+        echo "docker-compose"
+    else
+        echo "docker compose"
+    fi
+}
+
+DOCKER_COMPOSE=$(get_docker_compose_command)
+
 # Check if the date is passed as a parameter
 if [ -z "$1" ]; then
     echo "Please provide a date as a parameter (format: YYYY-MM-DD)"
@@ -17,7 +28,7 @@ if [ ! -f ".env" ]; then
 fi
 
 # Check if Docker Compose configuration is valid
-if ! docker compose config >/dev/null 2>&1; then
+if ! $DOCKER_COMPOSE config >/dev/null 2>&1; then
     echo "Error: Docker Compose configuration is invalid or missing. Please ensure your Docker Compose configuration is present and valid."
     exit 1
 fi
@@ -54,18 +65,18 @@ echo
 echo "Checking if PostgreSQL, InfluxDB, and Redis containers are running..."
 
 # Check for 'postgresql' or 'db' service for PostgreSQL and remember the service name
-POSTGRES_SERVICE=$(docker compose ps --services --filter "status=running" | grep -E '^(postgresql|db)$')
+POSTGRES_SERVICE=$($DOCKER_COMPOSE ps --services --filter "status=running" | grep -E '^(postgresql|db)$')
 if [ -z "$POSTGRES_SERVICE" ]; then
     echo "Error: PostgreSQL container is not running (neither as 'postgresql' nor 'db')."
     exit 1
 fi
 
-if ! docker compose ps --services --filter "status=running" | grep -q '^influxdb$'; then
+if ! $DOCKER_COMPOSE ps --services --filter "status=running" | grep -q '^influxdb$'; then
     echo "Error: InfluxDB container is not running."
     exit 1
 fi
 
-if ! docker compose ps --services --filter "status=running" | grep -q '^redis$'; then
+if ! $DOCKER_COMPOSE ps --services --filter "status=running" | grep -q '^redis$'; then
     echo "Error: Redis container is not running."
     exit 1
 fi
@@ -85,9 +96,9 @@ echo
 
 # Check all running containers except PostgreSQL, InfluxDB, and Redis
 echo "Checking running containers..."
-RUNNING_CONTAINERS=$(docker compose ps --services --filter "status=running" | grep -vE '^(postgresql|db|influxdb|redis)$')
+RUNNING_CONTAINERS=$($DOCKER_COMPOSE ps --services --filter "status=running" | grep -vE '^(postgresql|db|influxdb|redis)$')
 echo "Stopping all containers except PostgreSQL, InfluxDB, and Redis..."
-docker compose stop $(echo "$RUNNING_CONTAINERS")
+$DOCKER_COMPOSE stop $(echo "$RUNNING_CONTAINERS")
 echo "All other containers stopped."
 echo
 
@@ -102,7 +113,7 @@ PG_BACKUP_FILE="solectrus-postgresql-backup-$BACKUP_DATE.sql.gz"
 if [ -f "$PG_BACKUP_FILE" ]; then
     echo "Restoring PostgreSQL backup..."
 
-    gunzip -c $PG_BACKUP_FILE | docker compose exec -T $POSTGRES_SERVICE psql -U postgres >/dev/null 2>&1
+    gunzip -c $PG_BACKUP_FILE | $DOCKER_COMPOSE exec -T $POSTGRES_SERVICE psql -U postgres >/dev/null 2>&1
 
     if [ $? -eq 0 ]; then
         echo "PostgreSQL restore completed successfully."
@@ -125,17 +136,17 @@ if [ -f "$INFLUX_BACKUP_FILE" ]; then
     echo "Restoring InfluxDB backup..."
 
     # Delete existing bucket before restoring
-    docker compose exec influxdb influx bucket delete --name $BUCKET_NAME --org $ORG_NAME -t $INFLUX_TOKEN
+    $DOCKER_COMPOSE exec influxdb influx bucket delete --name $BUCKET_NAME --org $ORG_NAME -t $INFLUX_TOKEN
 
     # Copy and extract the backup
-    docker cp $INFLUX_BACKUP_FILE $(docker compose ps -q influxdb):/tmp/
-    docker compose exec influxdb tar -xzf /tmp/solectrus-influxdb-backup-$BACKUP_DATE.tar.gz -C /tmp
+    docker cp $INFLUX_BACKUP_FILE $($DOCKER_COMPOSE ps -q influxdb):/tmp/
+    $DOCKER_COMPOSE exec influxdb tar -xzf /tmp/solectrus-influxdb-backup-$BACKUP_DATE.tar.gz -C /tmp
 
     # Restore the InfluxDB backup
-    docker compose exec influxdb influx restore /tmp/solectrus-influxdb-backup-$BACKUP_DATE/ -t $INFLUX_TOKEN
+    $DOCKER_COMPOSE exec influxdb influx restore /tmp/solectrus-influxdb-backup-$BACKUP_DATE/ -t $INFLUX_TOKEN
 
     # Cleanup after restore
-    docker compose exec influxdb rm -rf /tmp/solectrus-influxdb-backup-$BACKUP_DATE /tmp/solectrus-influxdb-backup-$BACKUP_DATE.tar.gz
+    $DOCKER_COMPOSE exec influxdb rm -rf /tmp/solectrus-influxdb-backup-$BACKUP_DATE /tmp/solectrus-influxdb-backup-$BACKUP_DATE.tar.gz
     echo "InfluxDB restore completed."
 else
     echo "InfluxDB backup file $INFLUX_BACKUP_FILE not found."
@@ -148,7 +159,7 @@ rm $INFLUX_BACKUP_FILE
 
 # Redis flush
 echo "Flushing Redis..."
-docker compose exec redis redis-cli FLUSHALL
+$DOCKER_COMPOSE exec redis redis-cli FLUSHALL
 if [ $? -eq 0 ]; then
     echo "Redis cache flushed successfully."
 else
@@ -160,7 +171,7 @@ echo
 # Restart only previously running containers
 echo "Restarting previously running containers..."
 if [ -n "$RUNNING_CONTAINERS" ]; then
-    docker compose start $(echo "$RUNNING_CONTAINERS")
+    $DOCKER_COMPOSE start $(echo "$RUNNING_CONTAINERS")
     echo "Previously running containers restarted."
 else
     echo "No containers were previously running."
