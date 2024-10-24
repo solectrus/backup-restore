@@ -47,7 +47,7 @@ echo
 # PostgreSQL Backup
 echo "Creating PostgreSQL backup..."
 PG_BACKUP_FILE="solectrus-postgresql-backup-$BACKUP_DATE.sql.gz"
-$DOCKER_COMPOSE exec $POSTGRES_SERVICE pg_dumpall -U postgres | gzip >$PG_BACKUP_FILE
+$DOCKER_COMPOSE exec $POSTGRES_SERVICE pg_dump -U postgres --clean --if-exists --dbname=solectrus_production | gzip >$PG_BACKUP_FILE
 if [ $? -eq 0 ]; then
     PG_SIZE=$(du -h "$PG_BACKUP_FILE" | awk '{print $1}')
     echo "PostgreSQL backup saved as $PG_BACKUP_FILE ($PG_SIZE)"

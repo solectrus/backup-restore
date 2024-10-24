@@ -113,7 +113,7 @@ PG_BACKUP_FILE="solectrus-postgresql-backup-$BACKUP_DATE.sql.gz"
 if [ -f "$PG_BACKUP_FILE" ]; then
     echo "Restoring PostgreSQL backup..."
 
-    gunzip -c $PG_BACKUP_FILE | $DOCKER_COMPOSE exec -T $POSTGRES_SERVICE psql -U postgres >/dev/null
+    gunzip -c $PG_BACKUP_FILE | $DOCKER_COMPOSE exec -T $POSTGRES_SERVICE psql -U postgres -d solectrus_production >/dev/null
 
     if [ $? -eq 0 ]; then
         echo "PostgreSQL restore completed successfully."
