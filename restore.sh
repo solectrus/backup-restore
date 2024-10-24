@@ -108,12 +108,12 @@ tar -xzf $COMBINED_BACKUP_FILE
 echo "Extraction completed."
 echo
 
-# PostgreSQL Restore with suppressed output
+# PostgreSQL Restore
 PG_BACKUP_FILE="solectrus-postgresql-backup-$BACKUP_DATE.sql.gz"
 if [ -f "$PG_BACKUP_FILE" ]; then
     echo "Restoring PostgreSQL backup..."
 
-    gunzip -c $PG_BACKUP_FILE | $DOCKER_COMPOSE exec -T $POSTGRES_SERVICE psql -U postgres >/dev/null 2>&1
+    gunzip -c $PG_BACKUP_FILE | $DOCKER_COMPOSE exec -T $POSTGRES_SERVICE psql -U postgres >/dev/null
 
     if [ $? -eq 0 ]; then
         echo "PostgreSQL restore completed successfully."
