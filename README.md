@@ -65,7 +65,7 @@ Requirements:
 
 With these scripts, you can easily manage the backup and restore processes for PostgreSQL and InfluxDB databases in your SOLECTRUS setup.
 
-# Download and Installation
+## Download and Installation
 
 To use the scripts, you can download them directly into your SOLECTRUS installation directory:
 
@@ -79,4 +79,33 @@ curl -o restore.sh https://raw.githubusercontent.com/solectrus/backup-restore/re
 
 # Make both scripts executable
 chmod +x backup.sh restore.sh
+```
+
+## Automating Backups with CRON
+
+To ensure regular backups, you can set up a cron job to execute the backup script automatically, e.g. daily at a specific time. Here's how you can do it:
+
+1. Open the crontab editor:
+
+   ```bash
+   crontab -e
+   ```
+
+2. Add the following line to schedule a daily backup at 2:00 AM:
+
+   ```bash
+   0 2 * * * cd /path/to/solectrus && ./backup.sh --backup-dir /path/to/backups --retention-days 10
+   ```
+
+   **Explanation:**
+
+   - `0 2 * * *` → Runs the backup script daily at 2:00 AM
+   - `cd /path/to/solectrus` → Path to the backup script (change to your SOLECTRUS installation directory)
+   - `--backup-dir /path/to/backups` → Directory where backups will be stored (change to your desired backup directory)
+   - `--retention-days 10` → Optional parameter to specify the number of days to keep backups (deleting older backups)
+
+To verify that the cron job is active, run:
+
+```bash
+crontab -l
 ```
