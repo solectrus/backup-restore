@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo -e "SOLECTRUS Restore Script\n"
+
 # Function to detect and use the correct Docker Compose command
 function get_docker_compose_command {
     if command -v docker-compose >/dev/null 2>&1; then
@@ -11,15 +13,21 @@ function get_docker_compose_command {
 
 DOCKER_COMPOSE=$(get_docker_compose_command)
 
-# Check if the date is passed as a parameter
+# Check if the backup file is passed as a parameter
 if [ -z "$1" ]; then
-    echo "Please provide a date as a parameter (format: YYYY-MM-DD)"
+    echo "Usage: $0 <BACKUP_FILE>"
+    echo "Restore a backup from the specified file"
     exit 1
 fi
 
-# Set the backup date
-BACKUP_DATE=$1
-COMBINED_BACKUP_FILE="solectrus-backup-$BACKUP_DATE.tar.gz"
+# Set the backup file
+COMBINED_BACKUP_FILE=$1
+BACKUP_DATE=$(echo "$COMBINED_BACKUP_FILE" | grep -oE '[0-9]{4}-[0-9]{2}-[0-9]{2}')
+
+if [ -z "$BACKUP_DATE" ]; then
+    echo "Error: Backup file name does not contain a valid date (YYYY-MM-DD)."
+    exit 1
+fi
 
 # Check if .env file exists
 if [ ! -f ".env" ]; then

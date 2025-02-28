@@ -3,6 +3,42 @@
 # Set current date for the backup
 BACKUP_DATE=$(date '+%Y-%m-%d')
 
+# Default values
+BACKUP_DIR="."
+BACKUP_RETENTION_DAYS=""
+
+echo -e "SOLECTRUS Backup Script\n"
+
+# Parse named arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+    --backup-dir)
+        BACKUP_DIR="$2"
+        shift 2
+        ;;
+    --retention-days)
+        BACKUP_RETENTION_DAYS="$2"
+        shift 2
+        ;;
+    -h | --help)
+        echo -e "Usage: $0 [--backup-dir DIR] [--retention-days DAYS]\n"
+        echo -e "Creates a backup of SOLECTRUS databases (PostgreSQL and InfluxDB)\n"
+        echo -e "Arguments:"
+        echo -e "  --backup-dir       Directory where the backup will be stored (default: current directory)."
+        echo -e "  --retention-days   Number of days to keep backups. If not specified, backups are kept forever."
+        exit 0
+        ;;
+    *)
+        echo "Unknown parameter: $1"
+        echo "Use --help to see the usage"
+        exit 1
+        ;;
+    esac
+done
+
+# Ensure the target directory exists
+mkdir -p "$BACKUP_DIR"
+
 # Function to detect and use the correct Docker Compose command
 function get_docker_compose_command {
     if command -v docker-compose >/dev/null 2>&1; then
@@ -76,7 +112,7 @@ fi
 echo
 
 # Combine both backups into a single tar.gz archive
-COMBINED_BACKUP_FILE="solectrus-backup-$BACKUP_DATE.tar.gz"
+COMBINED_BACKUP_FILE="$BACKUP_DIR/solectrus-backup-$BACKUP_DATE.tar.gz"
 tar -czf $COMBINED_BACKUP_FILE $PG_BACKUP_FILE $INFLUX_BACKUP_FILE
 if [ $? -eq 0 ]; then
     COMBINED_SIZE=$(du -h "$COMBINED_BACKUP_FILE" | awk '{print $1}')
@@ -91,3 +127,12 @@ rm $PG_BACKUP_FILE
 rm $INFLUX_BACKUP_FILE
 
 echo "Backup process completed."
+
+# Delete old backups only if retention days are specified
+if [[ -n "$BACKUP_RETENTION_DAYS" ]]; then
+    echo "Deleting backups older than $BACKUP_RETENTION_DAYS days..."
+    find "$BACKUP_DIR" -maxdepth 1 -name "solectrus-backup-*.tar.gz" -mtime +$BACKUP_RETENTION_DAYS -exec rm {} \;
+    echo "Old backups deleted."
+else
+    echo "No retention period specified. Old backups will not be deleted."
+fi

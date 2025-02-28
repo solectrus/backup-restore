@@ -20,6 +20,20 @@ Usage:
 
 The backup file will be saved in the current directory with the format `solectrus-backup-<DATE>.tar.gz`, where `<DATE>` is the current date.
 
+You can optionally provide a target directory where the backup file should be stored:
+
+```bash
+./backup.sh --backup-dir /path/to/backups
+```
+
+You can also specify the number of days to keep backups (older backups will be deleted):
+
+```bash
+./backup.sh --retention-days 10
+```
+
+Without specifying `--retention-days`, older backups will not be deleted.
+
 ## restore.sh
 
 The `restore.sh` script restores both PostgreSQL and InfluxDB databases from a previously created backup file. It ensures that only PostgreSQL and InfluxDB containers are running during the restore process to prevent any conflicts.
@@ -34,16 +48,14 @@ How it works:
 Usage:
 
 ```bash
-./restore.sh <DATE>
+./restore.sh <BACKUP_FILE>
 ```
 
-You need to provide the date of the backup as a parameter, e.g.:
+You need to provide the filename of the backup (containing the date as YYYY-MM-DD) as a parameter, e.g.:
 
 ```bash
-./restore.sh 2024-10-06
+./restore.sh /path/to/backups/solectrus-backup-2024-10-06.tar.gz
 ```
-
-The script will then restore the backup from `solectrus-backup-2024-10-06.tar.gz`.
 
 Requirements:
 
