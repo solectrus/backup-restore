@@ -136,9 +136,9 @@ echo
 # InfluxDB Restore
 INFLUX_BACKUP_FILE="solectrus-influxdb-backup-$BACKUP_DATE.tar.gz"
 INFLUX_BACKUP_PATH=/tmp/solectrus-influxdb-backup-$BACKUP_DATE
-INFLUX_TOKEN=$(grep '^INFLUX_ADMIN_TOKEN=' .env | cut -d '=' -f2-)
-BUCKET_NAME=$(grep '^INFLUX_BUCKET=' .env | cut -d '=' -f2-)
-ORG_NAME=$(grep '^INFLUX_ORG=' .env | cut -d '=' -f2-)
+INFLUX_TOKEN=$(grep '^INFLUX_ADMIN_TOKEN=' .env | cut -d '=' -f2- | tr -d '\r')
+BUCKET_NAME=$(grep '^INFLUX_BUCKET=' .env | cut -d '=' -f2- | tr -d '\r')
+ORG_NAME=$(grep '^INFLUX_ORG=' .env | cut -d '=' -f2- | tr -d '\r')
 
 if [ -f "$INFLUX_BACKUP_FILE" ]; then
     echo "Restoring InfluxDB backup..."

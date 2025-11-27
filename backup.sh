@@ -96,7 +96,7 @@ echo
 # InfluxDB Backup
 echo "Creating InfluxDB backup..."
 INFLUX_BACKUP_PATH=/tmp/solectrus-influxdb-backup-$BACKUP_DATE
-INFLUX_TOKEN=$(grep '^INFLUX_ADMIN_TOKEN=' .env | cut -d '=' -f2-)
+INFLUX_TOKEN=$(grep '^INFLUX_ADMIN_TOKEN=' .env | cut -d '=' -f2- | tr -d '\r')
 INFLUX_BACKUP_FILE="solectrus-influxdb-backup-$BACKUP_DATE.tar.gz"
 $DOCKER_COMPOSE exec influxdb influx backup $INFLUX_BACKUP_PATH/ -t $INFLUX_TOKEN
 $DOCKER_COMPOSE exec influxdb tar -czf $INFLUX_BACKUP_PATH.tar.gz -C /tmp solectrus-influxdb-backup-$BACKUP_DATE
